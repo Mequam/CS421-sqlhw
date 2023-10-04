@@ -32,6 +32,9 @@ public class DBTest {
 						//driver 
 						query = query.replaceAll("--.*","");
 						query = query.replaceAll("\\n","");
+						//drop tabs, this is for cleanlyness
+						//and optional
+						query = query.replaceAll("\\t","");
 
 
 						if (query.length() > 1) {
