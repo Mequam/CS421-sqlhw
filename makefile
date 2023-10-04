@@ -16,5 +16,6 @@ build:
 	javac @to_build.txt
 clean:
 	find . -name \*.class -delete
+	rm to_build.txt 
+cleanall: clean 
 	rm *.db
-	rm to_build.txt
