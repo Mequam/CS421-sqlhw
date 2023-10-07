@@ -1,3 +1,6 @@
+--this file is used to CREATE the database
+--and contains all sql commands required for that task
+
 --sqllite does not include foreign_keys by default
 --we need to enable this for the behavior
 --note on some systems very rarely sql lite will NOT include
@@ -68,3 +71,21 @@ CREATE TABLE SCHEDULE_TABLE (
 	FOREIGN KEY(FLIGHT_TUID)
 		 REFERENCES FLIGHT_TABLE(TUID)
 	);
+
+CREATE VIEW HR_SCHEDULE_TABLE AS 
+SELECT 
+	LASTNAME,
+	PLANE_ID, 
+	DEPART_TIME,
+	FLIGHT_DATE,
+	REQUESTED_SECTION,
+	SEATED_SECTION,
+	SEAT_NUMBER
+FROM  
+	SCHEDULE_TABLE 
+INNER JOIN FLIGHT_TABLE
+	ON SCHEDULE_TABLE.flight_tuid = FLIGHT_TABLE.tuid
+INNER JOIN PLANE_TABLE
+	ON	PLANE_TABLE.tuid = FLIGHT_TABLE.plane_tuid
+INNER JOIN PASSENGER_TABLE
+	ON PASSENGER_TABLE.tuid = SCHEDULE_TABLE.passenger_tuid;
