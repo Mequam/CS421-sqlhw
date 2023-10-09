@@ -20,10 +20,10 @@ DROP TABLE IF EXISTS PLANE_TABLE;
 
 --contains info about each individual plane
 CREATE TABLE PLANE_TABLE(
-	TUID INTEGER PRIMARY KEY, 
-	PLANE_ID VARCHAR,
-	MAX_VIP INT,
-	MAX_LUXURY INT
+	tuid INTEGER PRIMARY KEY, 
+	plane_id VARCHAR,
+	max_vip INT,
+	max_luxury INT
 );
 
 

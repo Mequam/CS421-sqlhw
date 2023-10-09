@@ -82,8 +82,22 @@ SELECT
 			then 0 
 		ELSE 
 			vip_count 
-	END vip_count
+	END vip_count,
+
+	CASE 
+		WHEN luxury_count_wanted is NULL 
+			THEN 0 
+		ELSE 
+			luxury_count_wanted 
+	END luxury_count_wanted,
 	
+	CASE 
+		WHEN vip_count_wanted is NULL 
+			THEN 0 
+		ELSE 
+			vip_count_wanted 
+	END vip_count_wanted 
+
 	FROM 
 
 		FLIGHT_LUXURY_COUNT 
@@ -94,7 +108,24 @@ SELECT
 			FLIGHT_LUXURY_COUNT.flight_tuid 
 		AND 
 		FLIGHT_VIP_COUNT.flight_date =
-			FLIGHT_LUXURY_COUNT.flight_date;
+			FLIGHT_LUXURY_COUNT.flight_date 
+	
+	FULL LEFT JOIN 
+		FLIGHT_LUXURY_COUNT_WANTED AS FLCW
+	ON 
+		FLCW.flight_tuid = FLIGHT_LUXURY_COUNT.flight_tuid 
+	AND 
+		FLCW.flight_date = FLIGHT_LUXURY_COUNT.flight_date 
+	
+	FULL LEFT JOIN 
+		FLIGHT_VIP_COUNT_WANTED AS FVCW 
+	ON 
+		FVCW.flight_tuid = FLIGHT_VIP_COUNT.flight_tuid 
+	AND 
+		FVCW.flight_date = FLIGHT_VIP_COUNT.flight_date
+
+		;
+
 
 -- contains information about the number of passengers on
 -- any given flight, and the max passengers for that flight
@@ -104,8 +135,20 @@ CREATE VIEW POPULATED_FLIGHT_PASSENGER_COUNT AS
 		flight_tuid,
 		flight_date,
 		luxury_count,
-		vip_count 
-	FROM FLIGHT_PASSENGER_COUNT;
+		vip_count,
+		luxury_count_wanted,
+		vip_count_wanted,
+		max_vip,
+		max_luxury
+	FROM FLIGHT_PASSENGER_COUNT 
+	
+	LEFT JOIN FLIGHT_TABLE 
+	ON 
+		FLIGHT_TABLE.tuid 
+			= FLIGHT_PASSENGER_COUNT.flight_tuid
+	LEFT JOIN PLANE_TABLE 
+	ON 
+		PLANE_TABLE.tuid = FLIGHT_TABLE.plane_tuid;
 
 --convinence view that gives us flight
 --information with timing information
@@ -168,10 +211,11 @@ CREATE VIEW ALL_POSSIBLE_FLIGHT_DATES AS
 	SELECT * FROM countDates;
 
 --creates a populated view of every possible flight
---that could be flown in
+--that could be flown in and the max and min lux/vip
+--that could be or are in that flight
 CREATE VIEW ALL_POSSIBLE_FLIGHTS AS 
 SELECT 
-	FLIGHT_TABLE.tuid,
+	FLIGHT_TABLE.tuid as flight_tuid,
 	ALL_POSSIBLE_FLIGHT_DATES.flight_date,
 	FLIGHT_TABLE.DEPART_TIME,
 	CASE 
@@ -186,17 +230,54 @@ SELECT
 			THEN 0 
 		ELSE 
 			luxury_count 
-	END luxury_count
+	END luxury_count,
+
+	CASE 
+		WHEN luxury_count_wanted IS null 
+			THEN 0 
+		ELSE 
+			luxury_count_wanted   
+	END luxury_count_wanted,
+
+	CASE 
+		WHEN vip_count_wanted IS null 
+			THEN 0 
+		ELSE 
+			vip_count_wanted 
+	END vip_count_wanted,
+	max_vip,
+	max_luxury
+	
 FROM 
 	ALL_POSSIBLE_FLIGHT_DATES,
 	FLIGHT_TABLE 
+	
 	LEFT JOIN FLIGHT_PASSENGER_COUNT 
 	ON FLIGHT_PASSENGER_COUNT.flight_tuid =
 		FLIGHT_TABLE.tuid 
 		AND 
 		DATE(FLIGHT_PASSENGER_COUNT.flight_date) =
 		DATE(ALL_POSSIBLE_FLIGHT_DATES.flight_date) 
-		;
+	LEFT JOIN PLANE_TABLE 
+	ON PLANE_TABLE.tuid = FLIGHT_TABLE.tuid;
+	
+;
 
-
-
+--CREATE VIEW ALL_POSSIBLE_FLIGHT_DATA AS 
+--SELECT 
+--	flight_tuid,
+--	flight_date,
+--	ALL_POSSIBLE_FLIGHTS.depart_time,
+--	vip_count,
+--	luxury_count,
+--	luxury_count_wanted,
+--	vip_count_wanted,
+--	max_vip,
+--	max_luxury
+--FROM ALL_POSSIBLE_FLIGHTS
+--LEFT JOIN FLIGHT_TABLE 
+--	ON FLIGHT_TABLE.tuid = flight_tuid 
+--LEFT JOIN PLANE_TABLE 
+--	ON PLANE_TABLE.tuid = FLIGHT_TABLE.plane_tuid
+--;
+--
