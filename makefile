@@ -3,8 +3,8 @@ default: build
 	echo
 rebuild: cleanall build 
 	echo '[*] rebuild'
-debug: remake run
-	echo '[*] debug finished'
+debug: rerun
+	sqlite3 SQLITETest1.db
 	echo
 remake: clean build
 	echo '[*] finished remake'
