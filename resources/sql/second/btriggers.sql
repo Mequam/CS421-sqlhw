@@ -41,8 +41,31 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 		SEATED_SECTION,
 		SEAT_NUMBER
 	) VALUES(
-		new.PASSENGER_TUID,
+		new.PASSENGER_TUID, --this is passed straight in as long as the proff is honest >_>
+		
+		--begin flight tuid computation
 		CASE 
+			--if no flight date of our date exists
+			-- we are either a time traveler (our flight is in the past),
+			-- or our flight does not yet exist
+			-- so we can go ahead and insert right away
+
+			-- we can inforce a greater than clause if we 
+			-- want to,to stop time travelers from going back
+			-- in time, but idk if the assignment data
+			-- takes place in the future or not so well
+			-- have to add it in when this code makes
+			-- it to production in the REAL WORLD 0.0 ~.~
+			WHEN NOT (
+					new.flight_date IN (
+						SELECT flight_date 
+						FROM ALL_POSSIBLE_FLIGHT_DATES
+					)
+				) 
+			THEN 
+				new.flight_tuid 
+
+			-- valid flight date for vip tickets
 			WHEN new.requested_section = 'V'
 			THEN 
 				--select the first available flight
@@ -79,7 +102,10 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 						)
 					ORDER BY flight_date, depart_time 
 					LIMIT 1)
-			ELSE  --we are a luxury passenger
+			
+			-- we are a luxury passenger
+			-- use the luxury selection logic
+			ELSE  
 				--select the first flight we can board
 				--based on luxury limit
 		
@@ -102,9 +128,159 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 					ORDER BY flight_date, depart_time 
 					LIMIT 1)
 		END,
-		new.FLIGHT_DATE,
-		new.REQUESTED_SECTION,
-		new.SEATED_SECTION,
+	
+		--begin flight date computation
+
+		CASE 
+			--if no flight date of our date exists
+			-- we are either a time traveler (our flight is in the past),
+			-- or our flight does not yet exist
+			-- so we can go ahead and insert right away
+
+			-- we can inforce a greater than clause if we 
+			-- want to,to stop time travelers from going back
+			-- in time, but idk if the assignment data
+			-- takes place in the future or not so well
+			-- have to add it in when this code makes
+			-- it to production in the REAL WORLD 0.0 ~.~
+			WHEN NOT (
+					new.flight_date IN (
+						SELECT flight_date 
+						FROM ALL_POSSIBLE_FLIGHT_DATES
+					)
+				) 
+			THEN 
+				new.flight_date 
+
+			-- valid flight date for vip tickets
+			WHEN new.requested_section = 'V'
+			THEN 
+				--select the first available flight
+				--that we can board
+				--REGAURLESS of luxury count
+				(SELECT flight_date 
+					FROM ALL_POSSIBLE_FLIGHTS 
+					WHERE 
+						--we use vip count wanted
+						--because that serves
+						--as a total indicator for
+						--all vip passengers in the plane
+						--basically, this asks
+						--"can this plane fit at least one more
+						--vip?"
+						vip_count_wanted < max_luxury+max_vip 
+						AND 
+					
+						--we need to limit the depart time
+						--to ONLY times that are greater than
+						--or equal to the depart time of the 
+						--insert command
+						NOT 
+						(
+							DATE(flight_date) 
+								= DATE(new.flight_date)
+						AND 
+							depart_time < (
+								
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+					ORDER BY flight_date, depart_time 
+					LIMIT 1)
+			
+			-- we are a luxury passenger
+			-- use the luxury selection logic
+			ELSE  
+				--select the first flight we can board
+				--based on luxury limit
+		
+				(SELECT flight_date 
+					FROM ALL_POSSIBLE_FLIGHTS 
+					WHERE luxury_count < max_luxury 
+						AND 
+						NOT (
+							
+							DATE(flight_date) 
+								= DATE(new.flight_date)
+						AND 
+							depart_time < (
+								
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+					ORDER BY flight_date, depart_time 
+					LIMIT 1)
+		END ,
+		
+		--what they request is what they request, 
+		--no need to change 
+		--this around
+		new.REQUESTED_SECTION, 
+		
+		--now which seat they get on the other hand has 
+		--MANY things to change around
+		CASE 
+			WHEN 	
+					--luxury is allways in luxury
+					new.requested_section = 'L' 
+					OR  --really hoping sql has short circuting
+			
+			--again if they do not yet exist, they can sit 
+			--where they want,
+			--they are the first person
+					NOT (
+					new.flight_date IN (
+						SELECT flight_date 
+						FROM ALL_POSSIBLE_FLIGHT_DATES
+					)
+				) 
+			THEN 
+				new.seated_section 
+
+			WHEN 
+				(
+					SELECT vip_count >= max_vip 
+					FROM ALL_POSSIBLE_FLIGHTS 
+					WHERE 
+						--we use vip count wanted
+						--because that serves
+						--as a total indicator for
+						--all vip passengers in the plane
+						--basically, this asks
+						--"can this plane fit at least one more
+						--vip?"
+						vip_count_wanted < max_luxury+max_vip 
+						AND 
+					
+						--we need to limit the depart time
+						--to ONLY times that are greater than
+						--or equal to the depart time of the 
+						--insert command
+						NOT 
+						(
+							DATE(flight_date) 
+								= DATE(new.flight_date)
+						AND 
+							depart_time < (
+								
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+					ORDER BY flight_date, depart_time 
+					LIMIT 1
+				) = 1
+				THEN  -- if the vip count is full, we will get
+						-- bump to get luxury
+					'L'
+				ELSE 
+					'V'
+	END,
 		new.SEAT_NUMBER
 	);
 
