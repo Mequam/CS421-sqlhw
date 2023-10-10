@@ -1,0 +1,18 @@
+SELECT DATE(flight_date) 
+	FROM ALL_POSSIBLE_FLIGHTS 
+	WHERE luxury_count < max_luxury 
+	AND 
+	NOT (
+
+			DATE(flight_date) 
+			= DATE(new.flight_date)
+			AND 
+			depart_time < (
+
+				SELECT depart_time 
+				FROM FLIGHT_TABLE 
+				WHERE tuid = new.flight_tuid
+				)
+		 )
+	ORDER BY flight_date, depart_time 
+	LIMIT 1;

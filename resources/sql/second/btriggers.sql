@@ -43,6 +43,12 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 	) VALUES(
 		new.PASSENGER_TUID,
 		CASE 
+			--if we are not already in the system insert ourselfs into the system
+			WHEN (SELECT COUNT(*)=0 AS new_data 
+					FROM ALL_POSSIBLE_FLIGHT_DATES 
+					WHERE flight_date = new.flight_date)
+			THEN 
+				new.flight_tuid
 			WHEN new.requested_section = 'V'
 			THEN 
 				--select the first available flight
@@ -102,7 +108,74 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 					ORDER BY flight_date, depart_time 
 					LIMIT 1)
 		END,
-		new.FLIGHT_DATE,
+
+
+		CASE 
+			--if we are not already in the system insert ourselfs into the system
+
+			WHEN (SELECT COUNT(*)=0 AS new_data 
+					FROM ALL_POSSIBLE_FLIGHT_DATES 
+					WHERE flight_date = new.flight_date)
+			THEN 
+				DATE(new.flight_date)
+			WHEN new.requested_section = 'V'
+			THEN 
+				--select the first available flight
+				--that we can board
+				--REGAURLESS of luxury count
+				(SELECT DATE(flight_date)
+					FROM ALL_POSSIBLE_FLIGHTS 
+					WHERE 
+						--we use vip count wanted
+						--because that serves
+						--as a total indicator for
+						--all vip passengers in the plane
+						--basically, this asks
+						--"can this plane fit at least one more
+						--vip?"
+						vip_count_wanted < max_luxury+max_vip 
+						AND 
+					
+						--we need to limit the depart time
+						--to ONLY times that are greater than
+						--or equal to the depart time of the 
+						--insert command
+						NOT 
+						(
+							DATE(flight_date) 
+								= DATE(new.flight_date)
+						AND 
+							depart_time < (
+								
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+					ORDER BY flight_date, depart_time 
+					LIMIT 1)
+			ELSE  --we are a luxury passenger
+				--select the first flight we can board
+				--based on luxury limit
+				(SELECT DATE(flight_date) 
+					FROM ALL_POSSIBLE_FLIGHTS 
+					WHERE luxury_count < max_luxury 
+						AND 
+						NOT (
+							
+							DATE(flight_date) 
+								= DATE(new.flight_date)
+						AND 
+							depart_time < (
+								
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+					ORDER BY flight_date, depart_time 
+					LIMIT 1)
+		END,
 		new.REQUESTED_SECTION,
 		new.SEATED_SECTION,
 		new.SEAT_NUMBER
