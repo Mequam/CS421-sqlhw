@@ -5,32 +5,6 @@
 CREATE TRIGGER IF NOT EXISTS SCHEDULE_INSERT
 INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN 
 
-	-- cursed hack I found online for sql lite variables
-
-
-	--get the flight that we want to insert into
-	--and store it as a variable
---	INSERT INTO VARS(name,int_val,date_val) 
---		
---		CASE 
---			WHEN 
---				NEW.flight_tuid IN  
---					(SELECT flight_tuid FROM SCHEDULE_TABLE_DATA)
---				
---				AND 
---				
---				NEW.flight_date IN 
---					(SELECT flight_date FROM SCHEDULE_TABLE_DATA)
---				
---			THEN 
---				--our flight is already in the db, lets find out
---				--if we can insert it
---				(SELECT 1, 1)
---			ELSE 
---				(SELECT NEW.flight_tuid , NEW.flight_date)
---				
---	;
-	
 
 	--actually allow inserting into the table
 	INSERT INTO SCHEDULE_TABLE_DATA(
@@ -46,6 +20,10 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 		--begin flight tuid computation
 		CASE 
 			--if we are not already in the system insert ourselfs into the system
+			--I had to use count(*) to deal with null values
+			--properly, theres prolly a way to do this better,
+			-- but thats a premium feature and I am currently doing
+			--this for FREE :D
 			WHEN (SELECT COUNT(*)=0 AS new_data 
 					FROM ALL_POSSIBLE_FLIGHT_DATES 
 					WHERE flight_date = new.flight_date)
@@ -113,6 +91,8 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 					ORDER BY flight_date, depart_time 
 					LIMIT 1)
 		END,
+
+		--begin flight date computation
 		CASE 
 			--if we are not already in the system insert ourselfs into the system
 
@@ -187,9 +167,13 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 		--no need to change 
 		--this around
 		new.REQUESTED_SECTION, 
-		
+
+
+
 		--now which seat they get on the other hand has 
 		--MANY things to change around
+		
+		--begin seated section computation
 		CASE 
 			WHEN 	
 					--luxury is allways in luxury
@@ -207,7 +191,8 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 			THEN 
 				new.seated_section 
 
-			WHEN 
+			WHEN  --we are vip
+				--check if we need to bump
 				(
 					SELECT vip_count >= max_vip 
 					FROM ALL_POSSIBLE_FLIGHTS 
@@ -245,26 +230,166 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 						-- bump to get luxury
 					'L'
 				ELSE 
-					'V'
+					'V' --we do not bump, vip
 	END,
-		new.SEAT_NUMBER
-	);
+
+		--begin outer case (seat # computation)
+		CASE  
+
+			--if we are not already in the system insert ourselfs into the system
+			WHEN (SELECT COUNT(*)=0 AS new_data 
+					FROM ALL_POSSIBLE_FLIGHT_DATES 
+					WHERE flight_date = new.flight_date)
+			THEN 
+				-- if it is a new passenger
+				-- then they obvi get the first seat number
+				(SELECT 1) 
+			WHEN new.requested_section = 'V'
+			THEN 
+				--the ordering for these seat #'s 
+				--should be from 0 to n and one continous
+				--range, but what do I know, I just write
+				--code -\ :/ /-
+
+				--anyways heres a disgusting case statement
+				--to meet requirements :p
+		
+
+			-- figure out if we need to
+			-- use luxury numbering or
+			-- vip numbering for this passenger
+			CASE --begin inner case (vip set # computation)
+			--are there more vip's in our plane than allowed?
+			--basically, are we bumping?
+				WHEN 
+					
+				(
+					SELECT vip_count >= max_vip 
+					FROM ALL_POSSIBLE_FLIGHTS 
+					WHERE 
+						--we use vip count wanted
+						--because that serves
+						--as a total indicator for
+						--all vip passengers in the plane
+						--basically, this asks
+						--"can this plane fit at least one more
+						--vip?"
+						vip_count_wanted < max_luxury+max_vip 
+						AND 
+					
+						--we need to limit the depart time
+						--to ONLY times that are greater than
+						--or equal to the depart time of the 
+						--insert command
+						NOT 
+						(
+							DATE(flight_date) 
+								= DATE(new.flight_date)
+						AND 
+							depart_time < (
+								
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+					ORDER BY flight_date, depart_time 
+					LIMIT 1
+				) = 1
+				THEN  -- if the vip count is full, we will get
+						-- bump to get luxury
+				-- they are bumping a passenger
+				-- use luxury logic
+				-- for computing seat #
+				(SELECT luxury_count + 1 
+					FROM ALL_POSSIBLE_FLIGHTS 
+					WHERE 
+						-- note: we sue the same logic
+						-- that we use for computing flight
+						-- earlier, as despite us
+						-- counting luxury passengers
+						-- we are still on a vip flight
+						vip_count_wanted < max_luxury+max_vip 
+						AND 
+					
+						--we need to limit the depart time
+						--to ONLY times that are greater than
+						--or equal to the depart time of the 
+						--insert command
+						NOT 
+						(
+							DATE(flight_date) 
+								= DATE(new.flight_date)
+						AND 
+							depart_time < (
+								
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+					ORDER BY flight_date, depart_time 
+					LIMIT 1
+				)
+				ELSE --there is no bumping occuring,
+						--use vip logic
+
+				(
+				SELECT vip_count + 1 
+								FROM ALL_POSSIBLE_FLIGHTS 
+								WHERE 
+									--we use vip count wanted
+									--because that serves
+									--as a total indicator for
+									--all vip passengers in the plane
+									--basically, this asks
+									--"can this plane fit at least one more
+									--vip?"
+									vip_count_wanted < max_luxury+max_vip 
+									AND 
+								
+									--we need to limit the depart time
+									--to ONLY times that are greater than
+									--or equal to the depart time of the 
+									--insert command
+									NOT 
+									(
+										DATE(flight_date) 
+											= DATE(new.flight_date)
+									AND 
+										depart_time < (
+											
+											SELECT depart_time 
+											FROM FLIGHT_TABLE 
+											WHERE tuid = new.flight_tuid
+										)
+									)
+								ORDER BY flight_date, depart_time 
+								LIMIT 1)
+
+				END  --end inner case (vip seat # computation)
+			ELSE  --we are a luxury passenger, use luxury count logic
+				(
+					SELECT luxury_count + 1
+					FROM ALL_POSSIBLE_FLIGHTS 
+					WHERE luxury_count < max_luxury 
+						AND 
+						NOT (
+							
+							DATE(flight_date) 
+								= DATE(new.flight_date)
+						AND 
+							depart_time < (
+								
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+					ORDER BY flight_date, depart_time 
+					LIMIT 1
+				)
+	END -- end outer case (seat # compuation)
+);
 
 END;
-
---CREATE TRIGGER IF NOT EXISTS AFTER_SCHEDULE_ADD 
---AFTER INSERT ON SCHEDULE_TABLE BEGIN
---
---
---
---INSERT INTO TEMP(name,c)
---	SELECT 'count',cast(COUNT(*) as VARCHAR) as data
---		FROM SCHEDULE_TABLE 
---		WHERE flight_tuid = NEW.flight_tuid 
---			AND NEW.flight_date = flight_date 
---			AND NEW.requested_section = requested_section;
---
---
---DROP TABLE TEMP;
---
---END;
