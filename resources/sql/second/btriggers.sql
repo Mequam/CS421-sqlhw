@@ -302,7 +302,7 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 				-- they are bumping a passenger
 				-- use luxury logic
 				-- for computing seat #
-				(SELECT luxury_count + 1 
+				(SELECT luxury_count_wanted
 					FROM ALL_POSSIBLE_FLIGHTS 
 					WHERE 
 						-- note: we sue the same logic
