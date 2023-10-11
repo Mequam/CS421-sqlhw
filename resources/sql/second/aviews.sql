@@ -263,21 +263,28 @@ FROM
 	
 ;
 
---CREATE VIEW ALL_POSSIBLE_FLIGHT_DATA AS 
---SELECT 
---	flight_tuid,
---	flight_date,
---	ALL_POSSIBLE_FLIGHTS.depart_time,
---	vip_count,
---	luxury_count,
---	luxury_count_wanted,
---	vip_count_wanted,
---	max_vip,
---	max_luxury
---FROM ALL_POSSIBLE_FLIGHTS
---LEFT JOIN FLIGHT_TABLE 
---	ON FLIGHT_TABLE.tuid = flight_tuid 
---LEFT JOIN PLANE_TABLE 
---	ON PLANE_TABLE.tuid = FLIGHT_TABLE.plane_tuid
---;
---
+--contains a view of all seats that are double booked by 
+--passengers
+--this is used in the bumping step of our insert code
+--plus its a generally useful thing to have lying around
+CREATE VIEW SEATING_CONFLICTS AS 
+
+SELECT 
+	st1.flight_date,
+	st1.flight_tuid,
+	st1.passenger_tuid AS vip_passenger_tuid,
+	st2.passenger_tuid AS luxury_passenger_tuid
+FROM 
+	SCHEDULE_TABLE as st1 
+	INNER JOIN 
+	SCHEDULE_TABLE as st2
+
+	ON 
+
+	st1.flight_date = st2.flight_date AND 
+	st1.flight_tuid = st2.flight_tuid AND 
+	st1.passenger_tuid <> st2.passenger_tuid AND 
+	st1.seated_section = st2.seated_section AND 
+	st1.seat_number = st2.seat_number AND 
+	st1.requested_section = 'V'; --ensure vip is from table 1
+

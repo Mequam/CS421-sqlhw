@@ -393,4 +393,9 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 	END -- end outer case (seat # compuation)
 );
 
+
+--now we need to deal with bumping 
+--we can join a table to itself to figure out where
+--we have doubles
+
 END;
