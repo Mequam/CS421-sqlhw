@@ -1,3 +1,4 @@
+
 -- this file contains the definition 
 -- for the triggers that enforce the assignment reqs
 
@@ -189,7 +190,7 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 						WHERE flight_date = new.flight_date
 					) 
 			THEN 
-				new.seated_section 
+				new.requested_section
 
 			WHEN  --we are vip
 				--check if we need to bump
