@@ -302,21 +302,13 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 				-- they are bumping a passenger
 				-- use luxury logic
 				-- for computing seat #
-				(SELECT luxury_count_wanted --we can't bump vip
+				CASE --vip must bump case
+				WHEN (
+					SELECT luxury_count < max_luxury
 					FROM ALL_POSSIBLE_FLIGHTS 
 					WHERE 
-						-- note: we sue the same logic
-						-- that we use for computing flight
-						-- earlier, as despite us
-						-- counting luxury passengers
-						-- we are still on a vip flight
 						vip_count_wanted < max_luxury+max_vip 
 						AND 
-					
-						--we need to limit the depart time
-						--to ONLY times that are greater than
-						--or equal to the depart time of the 
-						--insert command
 						NOT 
 						(
 							DATE(flight_date) 
@@ -331,7 +323,76 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 						)
 					ORDER BY flight_date, depart_time 
 					LIMIT 1
+				) 
+				THEN --there is space for the vip, insert normaly
+				(SELECT luxury_count + 1
+					FROM ALL_POSSIBLE_FLIGHTS 
+						WHERE 
+							-- note: we sue the same logic
+							-- that we use for computing flight
+							-- earlier, as despite us
+							-- counting luxury passengers
+							-- we are still on a vip flight
+							vip_count_wanted < max_luxury+max_vip 
+							AND 
+						
+							--we need to limit the depart time
+							--to ONLY times that are greater than
+							--or equal to the depart time of the 
+							--insert command
+							NOT 
+							(
+								DATE(flight_date) 
+									= DATE(new.flight_date)
+							AND 
+								depart_time < (
+									
+									SELECT depart_time 
+									FROM FLIGHT_TABLE 
+									WHERE tuid = new.flight_tuid
+								)
+							)
+						ORDER BY flight_date, depart_time 
+						LIMIT 1
 				)
+			ELSE --vip bump logic
+				(SELECT seat_number 
+					FROM
+						SCHEDULE_TABLE as st
+					INNER JOIN 
+						ALL_POSSIBLE_FLIGHTS AS apf
+					ON
+						st.flight_date = apf.flight_date 
+						AND 
+						st.flight_tuid = apf.flight_tuid
+					WHERE 
+						--get the proper vip flight
+						vip_count_wanted < max_luxury+max_vip 
+						AND NOT 
+						(
+							DATE(st.flight_date) 
+							= DATE(new.flight_date)
+							AND 
+							depart_time < (
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+						AND
+						requested_section = 'L' 
+					
+					ORDER BY 
+						
+						st.flight_date,
+						depart_time,
+						seat_number DESC 
+
+					LIMIT 1
+
+				)
+
+	END --end vip must bump logic
 				ELSE --there is no bumping occuring,
 						--use vip logic
 
@@ -408,72 +469,72 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 -- entry, if there IS conflcit the insereted data from 
 -- new.flight_date and new.flight_tuid are the SAME
 -- as the luxury passengers flight date and tuid
-UPDATE SCHEDULE_TABLE_DATA SET
-		PASSENGER_TUID = (SELECT 
-			luxury_passenger_tuid 
-			FROM SEATING_CONFLICTS),
-		FLIGHT_TUID = (
-			SELECT flight_tuid 
-								FROM ALL_POSSIBLE_FLIGHTS 
-								WHERE luxury_count < max_luxury 
-									AND 
-									NOT (
-										
-										DATE(flight_date) 
-											= DATE(new.flight_date)
-									AND 
-										depart_time < (
-											
-											SELECT depart_time 
-											FROM FLIGHT_TABLE 
-											WHERE tuid = new.flight_tuid
-										)
-									)
-								ORDER BY flight_date, depart_time 
-								LIMIT 1
-		),
-		FLIGHT_DATE = (
-			SELECT DATE(flight_date) 
-						FROM ALL_POSSIBLE_FLIGHTS 
-						WHERE luxury_count < max_luxury 
-							AND 
-							NOT (
-								
-								DATE(flight_date) 
-									= DATE(new.flight_date)
-							AND 
-								depart_time < (
-									
-									SELECT depart_time 
-										FROM FLIGHT_TABLE 
-										WHERE tuid = new.flight_tuid
-								)
-							)
-						ORDER BY flight_date, depart_time 
-						LIMIT 1
-	),
-		REQUESTED_SECTION = 'L', --if they get bumped they L
-		SEATED_SECTION = 'L',
-		SEAT_NUMBER = (
-					SELECT luxury_count + 1
-					FROM ALL_POSSIBLE_FLIGHTS 
-					WHERE luxury_count < max_luxury 
-						AND 
-						NOT (
-							
-							DATE(flight_date) 
-								= DATE(new.flight_date)
-						AND 
-							depart_time < (
-								
-								SELECT depart_time 
-								FROM FLIGHT_TABLE 
-								WHERE tuid = new.flight_tuid
-							)
-						)
-					ORDER BY flight_date, depart_time 
-					LIMIT 1
-		)
-WHERE passenger_tuid = (SELECT luxury_passenger_tuid 
-									FROM SEATING_CONFLICTS);
+--UPDATE SCHEDULE_TABLE_DATA SET
+--		PASSENGER_TUID = (SELECT 
+--			luxury_passenger_tuid 
+--			FROM SEATING_CONFLICTS),
+--		FLIGHT_TUID = (
+--			SELECT flight_tuid 
+--								FROM ALL_POSSIBLE_FLIGHTS 
+--								WHERE luxury_count < max_luxury 
+--									AND 
+--									NOT (
+--										
+--										DATE(flight_date) 
+--											= DATE(new.flight_date)
+--									AND 
+--										depart_time < (
+--											
+--											SELECT depart_time 
+--											FROM FLIGHT_TABLE 
+--											WHERE tuid = new.flight_tuid
+--										)
+--									)
+--								ORDER BY flight_date, depart_time 
+--								LIMIT 1
+--		),
+--		FLIGHT_DATE = (
+--			SELECT DATE(flight_date) 
+--						FROM ALL_POSSIBLE_FLIGHTS 
+--						WHERE luxury_count < max_luxury 
+--							AND 
+--							NOT (
+--								
+--								DATE(flight_date) 
+--									= DATE(new.flight_date)
+--							AND 
+--								depart_time < (
+--									
+--									SELECT depart_time 
+--										FROM FLIGHT_TABLE 
+--										WHERE tuid = new.flight_tuid
+--								)
+--							)
+--						ORDER BY flight_date, depart_time 
+--						LIMIT 1
+--	),
+--		REQUESTED_SECTION = 'L', --if they get bumped they L
+--		SEATED_SECTION = 'L',
+--		SEAT_NUMBER = (
+--					SELECT luxury_count + 1
+--					FROM ALL_POSSIBLE_FLIGHTS 
+--					WHERE luxury_count < max_luxury 
+--						AND 
+--						NOT (
+--							
+--							DATE(flight_date) 
+--								= DATE(new.flight_date)
+--						AND 
+--							depart_time < (
+--								
+--								SELECT depart_time 
+--								FROM FLIGHT_TABLE 
+--								WHERE tuid = new.flight_tuid
+--							)
+--						)
+--					ORDER BY flight_date, depart_time 
+--					LIMIT 1
+--		)
+--WHERE passenger_tuid = (SELECT luxury_passenger_tuid 
+--									FROM SEATING_CONFLICTS);
 END;
