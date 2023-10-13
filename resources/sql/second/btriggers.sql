@@ -1,6 +1,39 @@
+-- this file contains the primary trigger that is used to 
+-- maintain the schedule insertion on the database
+-- tread lightly here, you have been warned
 
--- this file contains the definition 
--- for the triggers that enforce the assignment reqs
+-- NOTE:
+--	sql lite is NOT designed for this kind of sql work
+-- I don't have access to variables
+-- I don't have access to functions (I can kind of use views)
+-- and as a result the sql code is a bit hard to read
+-- but it DOES work, as I have bent sql lite TO MY WILL *^*
+
+-- as a quick guide to how this works the following is provided
+--	to help decode the cursed sql queries
+
+-- ALL_POSSIBLE_FLIGHTS is a view that enumerates flights
+-- by date from the first date entry in the database, to 
+-- plus one day of the last entry in order
+-- we filter that view
+-- to select the first available date that will work for us
+
+-- the rest of the sql is just variations on that technique
+-- to select different data appropriate for the incoming
+-- passenger 
+
+-- once we insert the proper entry, we then update the tables
+-- to resolve any seating conflicts by bumping down luxury
+
+-- this uses the SEATING_CONFLICTS view to detect when a seating
+-- conflict occures
+
+-- note:
+-- for vip's vip_wanted_count < vip_max + luxury_max means
+-- we can insert
+
+--for luxury luxury_count < luxury_max means we can insert
+
 
 --make it so we can use the view to insert
 CREATE TRIGGER IF NOT EXISTS SCHEDULE_INSERT
@@ -16,13 +49,17 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 		SEATED_SECTION,
 		SEAT_NUMBER
 	) VALUES(
-		new.PASSENGER_TUID, --this is passed straight in as long as the proff is honest >_>
+		new.PASSENGER_TUID, --this is passed straight 
+								  --in as long as the proff is honest >_>
+								  --and I don't have to sanatize stuff
 		
 		--begin flight tuid computation
 		CASE 
-			--if we are not already in the system insert ourselfs into the system
-			--I had to use count(*) to deal with null values
-			--properly, theres prolly a way to do this better,
+			--if we are not already in the system insert ourselfs into
+			--the system
+
+			-- I had to use count(*) to deal with null values
+			-- properly, theres prolly a way to do this better,
 			-- but thats a premium feature and I am currently doing
 			--this for FREE :D
 			WHEN (SELECT COUNT(*)=0 AS new_data 
@@ -469,72 +506,72 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 -- entry, if there IS conflcit the insereted data from 
 -- new.flight_date and new.flight_tuid are the SAME
 -- as the luxury passengers flight date and tuid
---UPDATE SCHEDULE_TABLE_DATA SET
---		PASSENGER_TUID = (SELECT 
---			luxury_passenger_tuid 
---			FROM SEATING_CONFLICTS),
---		FLIGHT_TUID = (
---			SELECT flight_tuid 
---								FROM ALL_POSSIBLE_FLIGHTS 
---								WHERE luxury_count < max_luxury 
---									AND 
---									NOT (
---										
---										DATE(flight_date) 
---											= DATE(new.flight_date)
---									AND 
---										depart_time < (
---											
---											SELECT depart_time 
---											FROM FLIGHT_TABLE 
---											WHERE tuid = new.flight_tuid
---										)
---									)
---								ORDER BY flight_date, depart_time 
---								LIMIT 1
---		),
---		FLIGHT_DATE = (
---			SELECT DATE(flight_date) 
---						FROM ALL_POSSIBLE_FLIGHTS 
---						WHERE luxury_count < max_luxury 
---							AND 
---							NOT (
---								
---								DATE(flight_date) 
---									= DATE(new.flight_date)
---							AND 
---								depart_time < (
---									
---									SELECT depart_time 
---										FROM FLIGHT_TABLE 
---										WHERE tuid = new.flight_tuid
---								)
---							)
---						ORDER BY flight_date, depart_time 
---						LIMIT 1
---	),
---		REQUESTED_SECTION = 'L', --if they get bumped they L
---		SEATED_SECTION = 'L',
---		SEAT_NUMBER = (
---					SELECT luxury_count + 1
---					FROM ALL_POSSIBLE_FLIGHTS 
---					WHERE luxury_count < max_luxury 
---						AND 
---						NOT (
---							
---							DATE(flight_date) 
---								= DATE(new.flight_date)
---						AND 
---							depart_time < (
---								
---								SELECT depart_time 
---								FROM FLIGHT_TABLE 
---								WHERE tuid = new.flight_tuid
---							)
---						)
---					ORDER BY flight_date, depart_time 
---					LIMIT 1
---		)
---WHERE passenger_tuid = (SELECT luxury_passenger_tuid 
---									FROM SEATING_CONFLICTS);
+UPDATE SCHEDULE_TABLE_DATA SET
+		PASSENGER_TUID = (SELECT 
+			luxury_passenger_tuid 
+			FROM SEATING_CONFLICTS),
+		FLIGHT_TUID = (
+			SELECT flight_tuid 
+								FROM ALL_POSSIBLE_FLIGHTS 
+								WHERE luxury_count < max_luxury 
+									AND 
+									NOT (
+										
+										DATE(flight_date) 
+											= DATE(new.flight_date)
+									AND 
+										depart_time < (
+											
+											SELECT depart_time 
+											FROM FLIGHT_TABLE 
+											WHERE tuid = new.flight_tuid
+										)
+									)
+								ORDER BY flight_date, depart_time 
+								LIMIT 1
+		),
+		FLIGHT_DATE = (
+			SELECT DATE(flight_date) 
+						FROM ALL_POSSIBLE_FLIGHTS 
+						WHERE luxury_count < max_luxury 
+							AND 
+							NOT (
+								
+								DATE(flight_date) 
+									= DATE(new.flight_date)
+							AND 
+								depart_time < (
+									
+									SELECT depart_time 
+										FROM FLIGHT_TABLE 
+										WHERE tuid = new.flight_tuid
+								)
+							)
+						ORDER BY flight_date, depart_time 
+						LIMIT 1
+	),
+		REQUESTED_SECTION = 'L', --if they get bumped they L
+		SEATED_SECTION = 'L',
+		SEAT_NUMBER = (
+					SELECT luxury_count + 1
+					FROM ALL_POSSIBLE_FLIGHTS 
+					WHERE luxury_count < max_luxury 
+						AND 
+						NOT (
+							
+							DATE(flight_date) 
+								= DATE(new.flight_date)
+						AND 
+							depart_time < (
+								
+								SELECT depart_time 
+								FROM FLIGHT_TABLE 
+								WHERE tuid = new.flight_tuid
+							)
+						)
+					ORDER BY flight_date, depart_time 
+					LIMIT 1
+		)
+WHERE passenger_tuid = (SELECT luxury_passenger_tuid 
+									FROM SEATING_CONFLICTS);
 END;
