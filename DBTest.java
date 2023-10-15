@@ -1,5 +1,8 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileInputStream;
+import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 import java.util.*;
 import java.sql.*;
 
@@ -71,6 +74,144 @@ public class DBTest {
 		con.close();
 
 	}
+
+
+	/**
+	 * creates the database, duh :p
+	 * */
+	public static void createDatabase()  
+			throws FileNotFoundException,ClassNotFoundException,
+								  SQLException,UnsupportedEncodingException,
+								  IOException
+	{
+		//create the basic tables and population
+		runSqlFiles("./resources/sql/createDatabase/scafolding",";");
+		runSqlFileRaw("./resources/sql/createDatabase/triggers/triggers.sql");
+			
+	}
+
+
+	/**
+	 * convinience overload of runSqlFileRaw(File) see runSqlFileRaw(file) for more details
+	 *
+	 * */
+	public static void runSqlFileRaw(String f) 
+			throws FileNotFoundException,ClassNotFoundException,
+								  SQLException,UnsupportedEncodingException,
+								  IOException
+	{
+		runSqlFileRaw(new File(f));
+	}
+	/**
+	 *	takes in the path to a SINGLE sql file, and runs it without significant additional parsing.
+	 *
+	 *	note: if the tables that you create in the sql file depend on the order of them bieng created, 
+	 *	this function will fail, as sql lite parses "everything at once" when it recives the query, 
+	 *	so if you have forign key constraints created at the same time as a forign table, the query will fail
+	 *	to execute
+	 *
+	 *	see runSqlFiles for what to do in this case
+	 * */
+	public static void runSqlFileRaw(File f) 
+			throws FileNotFoundException,ClassNotFoundException,
+								  SQLException,UnsupportedEncodingException,
+								  IOException
+	{
+					if (f.isDirectory())
+						return;  //we do NOT run directories
+
+					//we do NOT run sql on a non sql file
+					if (!f.getName().endsWith(".sql"))
+						return;
+
+					//prepare the query from the file
+					FileInputStream fis = new FileInputStream(f);
+
+					String query = new String(fis.readAllBytes(),"UTF-8");
+
+					query = query.replaceAll("--.*","");
+					query = query.replaceAll("\\s+"," ");
+
+
+						
+					//don't run if we get an empty query
+					if (query.length() <= 3) return;
+						
+					//execute the query
+					Connection con = getConnection();
+
+					Statement state = con.createStatement();
+					System.out.println(query);
+					state.execute(query); 
+					
+					con.close();
+	}
+	/**
+	 *  this function takes a folder path, and runs all sql files in that folder path through the sql lite database 
+	 *
+	 *  NOTE: the sql parser in this function is very primative, it works for basic sql files 
+	 *  queries that only insert delete and create things. 
+	 *
+	 *  For complex queries, the run function very well may file and a special case might need to be used. 
+	 * */
+	public static void runSqlFiles(File dir,String delimiter)
+			throws FileNotFoundException,ClassNotFoundException,
+								  SQLException,UnsupportedEncodingException,
+								  IOException {
+			
+			File [] sqlFiles = dir.listFiles();
+			Arrays.sort(sqlFiles,(f1,f2)->{
+				return f1.getName().compareTo(f2.getName());
+			});
+			if (sqlFiles != null) {
+				for (File currentFile : sqlFiles) {
+
+					//the fact that this is not built in functionality is RIDICULUS
+					//I should be able to point java at a sql file and have it run with the
+					//driver, but whatever -_-
+
+					System.out.println(currentFile.getName());
+
+					if (currentFile.isDirectory()) {
+						runSqlFiles(currentFile,delimiter);
+						continue; //move onto the next file do NOT run sql
+					}
+
+					//we do NOT run sql on a non sql file
+					if (!currentFile.getName().endsWith(".sql"))
+						continue;
+
+					//prepare the query from the file
+					FileInputStream fis = new FileInputStream(currentFile);
+
+					String data = new String(fis.readAllBytes(),"UTF-8");
+
+					data = data.replaceAll("--.*","");
+					data = data.replaceAll("\\s+"," ");
+
+					String [] allQueries = data.split(delimiter);
+
+					for (int i = 0; i < allQueries.length; i++)
+					{
+						String query = allQueries[i];
+						if (query.length() <= 3) continue;
+						
+						query = query + delimiter;
+						//execute the query
+						Connection con = getConnection();
+
+						Statement state = con.createStatement();
+						System.out.println(query);
+						state.execute(query); 
+						con.close();
+					}
+				}
+			} else {
+				System.out.println(
+						"[WARNING] no sql files detected"
+						);
+			}
+	}
 	/**
 	 * this function runs the sql files stored in the folder
 	 * given on the path variable
@@ -78,46 +219,13 @@ public class DBTest {
 	 * and be semi colon delimited!
 	 * @path the path to the sql files
 	 * */
-	public static void runSqlFiles(String path,
-											String delimiter) 
-			throws FileNotFoundException,ClassNotFoundException,SQLException
-		{
+	public static void runSqlFiles(String path,String delimiter) 
+			throws FileNotFoundException,ClassNotFoundException,
+								  SQLException,UnsupportedEncodingException,
+								  IOException
+	{
 			File dir = new File(path);
-			File [] sqlFiles = dir.listFiles();
-			if (sqlFiles != null) {
-				for (File c : sqlFiles) {
-
-					Connection con = getConnection();
-
-					Scanner sqlScanner = new Scanner(c);
-					sqlScanner.useDelimiter(delimiter);
-					while (sqlScanner.hasNext()) {
-						String query = sqlScanner.next();
-						
-						//filter out whitespace and comments
-						//for some reason these crash the
-						//driver 
-						query = query.replaceAll("--.*","");
-						query = query.replaceAll("\\n","");
-						//drop tabs, this is for cleanlyness
-						//and optional
-						//query = query.replaceAll("\\t","");
-
-
-						if (query.length() > 1) {
-							Statement state = con.createStatement();
-							System.out.println(query + delimiter);
-							//scanner.next removes the delimiters
-							state.execute(query + delimiter); 
-						}
-					}
-					con.close();
-				}
-			} else {
-				System.out.println(
-						"[WARNING] no sql files detected"
-						);
-			}
+			runSqlFiles(dir,delimiter);
 	}
 	public static Connection getConnection() 
 		throws ClassNotFoundException,SQLException
@@ -129,9 +237,10 @@ public class DBTest {
 
 	public static void main(String [] args)  
 		throws ClassNotFoundException,SQLException, 
-							  FileNotFoundException
+							  FileNotFoundException,UnsupportedEncodingException,
+							  IOException
 	{
-		//runSqlFiles("./resources/sql",";");
+		createDatabase();
 		loadPassengerFile("./project_files/plane.txt");
 		System.out.println(getConnection());
 	}

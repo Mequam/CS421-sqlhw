@@ -1,27 +1,42 @@
 default: build
 	echo '[*] program compiled sucessfully'
 	echo
-rebuild: cleanall build 
-	echo '[*] rebuild'
-debug: rerun
+
+#delete the db and rebuild
+remakeall: cleanall build 
+	echo '[*] remake'
+
+# setup and run the program, then throw testing data into the database,
+# and plop down in the db for further tests by the uer
+debug: rerun 
+	sqlite3 SQLITETest1.db < ./project_files/test.sql
 	sqlite3 SQLITETest1.db
 	echo
+
+#delete everything but the database, then rebuild
 remake: clean build
 	echo '[*] finished remake'
-	echo
+	echo 
+
+#run the main class with the proper class path set 
+#to access sqlite
 run: build
 	echo '[*] running the program!'
-	java -classpath .:sqlite-jdbc-3.43.0.0.jar DBTest
-rerun: rebuild run 
+	java -classpath .:sqlite-jdbc-3.43.0.0.jar DBTest 
+
+# remake everything, including the database, then run the program
+rerun: remake run 
 	echo '[*] finished rerun'
+
+#create the java program
 build:
 	echo '[*] building the program!'
 	find . -name \*.java > to_build.txt 
-	javac @to_build.txt
-	echo '[*] creating database'
-	./project_files/makedb.sh
+	javac @to_build.txt 
+
 clean:
 	find . -name \*.class -delete
-	rm to_build.txt 
+	find . -name to_build.txt -delete 
+
 cleanall: clean 
-	rm *.db
+	find . -name \*.db -delete
