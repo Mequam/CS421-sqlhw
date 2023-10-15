@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.*;
 import java.sql.*;
 
-public class DBTest {
+public class Main {
 
 	public static void loadPassengerFile(String fpath) 
 			throws 
@@ -231,7 +231,7 @@ public class DBTest {
 		throws ClassNotFoundException,SQLException
 	{
 		return DriverManager.getConnection(
-			"jdbc:sqlite:SQLITETest1.db"
+			"jdbc:sqlite:schedule_database.db"
 			);
 	}
 
