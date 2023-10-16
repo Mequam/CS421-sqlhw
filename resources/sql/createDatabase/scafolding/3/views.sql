@@ -129,17 +129,20 @@ SELECT
 
 -- contains information about the number of passengers on
 -- any given flight, and the max passengers for that flight
--- AND the time for the flight
-CREATE VIEW POPULATED_FLIGHT_PASSENGER_COUNT AS 
+-- AND the time for the flight and total cost,
+-- generly a one stop spot for aggrigate data regaurding any given flight
+CREATE VIEW FLIGHT_SUMMARY_VIEW AS 
 	SELECT 
-		flight_tuid,
-		flight_date,
+		FLIGHT_PASSENGER_COUNT.flight_tuid,
+		FLIGHT_PASSENGER_COUNT.flight_date,
+		depart_time,
 		luxury_count,
 		vip_count,
 		luxury_count_wanted,
 		vip_count_wanted,
 		max_vip,
-		max_luxury
+		max_luxury,
+		flight_value
 	FROM FLIGHT_PASSENGER_COUNT 
 	
 	LEFT JOIN FLIGHT_TABLE 
@@ -148,7 +151,12 @@ CREATE VIEW POPULATED_FLIGHT_PASSENGER_COUNT AS
 			= FLIGHT_PASSENGER_COUNT.flight_tuid
 	LEFT JOIN PLANE_TABLE 
 	ON 
-		PLANE_TABLE.tuid = FLIGHT_TABLE.plane_tuid;
+		PLANE_TABLE.tuid = FLIGHT_TABLE.plane_tuid 
+	INNER JOIN FLIGHT_COSTS 
+	ON 
+		FLIGHT_COSTS.flight_tuid = FLIGHT_PASSENGER_COUNT.flight_tuid
+		AND 
+		FLIGHT_COSTS.flight_date = FLIGHT_PASSENGER_COUNT.flight_date;
 
 --convinence view that gives us flight
 --information with timing information
@@ -288,3 +296,14 @@ FROM
 	st1.seat_number = st2.seat_number AND 
 	st1.requested_section = 'V'; --ensure vip is from table 1
 
+CREATE VIEW FLIGHT_COSTS AS 
+	
+SELECT flight_date,flight_tuid,sum(cost) as flight_value
+FROM 
+	SCHEDULE_TABLE 
+INNER JOIN 
+	FEE_TABLE 
+ON 
+	SCHEDULE_TABLE.requested_section = FEE_TABLE.fee_type 
+GROUP BY 
+	flight_date,flight_tuid;

@@ -8,6 +8,53 @@ import java.sql.*;
 
 public class Main {
 
+	/**
+	 *returns a result set containing all flights with people in them stored in the database
+	 * */
+	public static ResultSet getAllPopulatedFlights() throws SQLException,ClassNotFoundException {
+		Connection con = getConnection();
+		PreparedStatement s = con.prepareStatement(
+			"SELECT * FROM FLIGHT_SUMMARY_VIEW ORDER BY flight_date, depart_time;" 
+		);
+
+		ResultSet rs =  s.executeQuery();
+
+
+		while (rs.next()) { //this loop runs for every flight in the database
+
+			int flight_tuid = rs.getInt("flight_tuid");
+			String flight_date = rs.getString("flight_date");
+			int flight_value = rs.getInt("flight_value");
+
+			System.out.println(flight_tuid);
+			System.out.println(flight_date);
+			System.out.println(flight_value);
+
+
+			System.out.println("-");
+
+			
+
+		}
+
+		con.close();
+		return rs;
+	}
+
+	public static ResultSet getSeatings(int flight_tuid,String date) throws SQLException,ClassNotFoundException {
+		Connection con = getConnection();
+		PreparedStatement s = con.prepareStatement(
+			"SELECT * FROM SCHEDULE_TABLE WHERE flight_tuid = ? AND flight_date = ?"
+		);
+
+		s.setInt(1,flight_tuid);
+		s.setString(2,date);
+
+		ResultSet rs =  s.executeQuery();
+		con.close();
+		return rs;
+	}
+
 	public static void loadPassengerFile(String fpath) 
 			throws 
 				FileNotFoundException,
@@ -235,13 +282,52 @@ public class Main {
 			);
 	}
 
+
+	/**
+	 * pretty draws the given plane on the terminal
+	 * */
+	//public static void drawPlane(int vip_count_wanted, int luxury_count_wanted, int max_vip,int max_luxury,int plane_width) {
+
+
+	//	//set up the actual number of passengers at each step
+	//	int luxury_count = luxury_count_wanted;
+	//	int vip_count = luxury_count_wanted;
+	//	if (vip_count_wanted > max_vip) {
+	//		luxury_count += vip_count_wanted - max_vip;
+	//		vip_count = max_vip;
+	//	}
+
+	//	int plane_height = (int)Math.ceil((double)vip_count_wanted/(double)plane_width) + 
+	//							(int)Math.ceil((double) luxury_count_wanted / (double) plane_width);
+
+	//	for (int i = 0; i < plane_height; i++) {
+	//		for (int j = 0; j < plane_width; j++) {
+	//				
+	//		}
+	//		System.out.println();
+	//	}
+
+	//	//draw the vip section
+	//	//
+	//	
+	//}
+
 	public static void main(String [] args)  
 		throws ClassNotFoundException,SQLException, 
 							  FileNotFoundException,UnsupportedEncodingException,
 							  IOException
 	{
-		createDatabase();
-		loadPassengerFile("./project_files/plane.txt");
-		System.out.println(getConnection());
+
+		//createDatabase();
+		//loadPassengerFile("./project_files/plane.txt");
+
+		System.out.println("\n");
+
+
+		System.out.println("displaying the result set");
+
+
+		ResultSet rs = getAllPopulatedFlights();
+
 	}
 }

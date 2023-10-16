@@ -25,7 +25,7 @@ run: build
 	java -classpath .:sqlite-jdbc-3.43.0.0.jar Main 
 
 # remake everything, including the database, then run the program
-rerun: remake run 
+rerun: remakeall run 
 	echo '[*] finished rerun'
 
 #create the java program
