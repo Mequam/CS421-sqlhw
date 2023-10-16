@@ -26,14 +26,10 @@ public class Main {
 			String flight_date = rs.getString("flight_date");
 			int flight_value = rs.getInt("flight_value");
 
-			System.out.println(flight_tuid);
-			System.out.println(flight_date);
-			System.out.println(flight_value);
+			System.out.println("hello from the outer while");
 
+			drawFlightGraphic(flight_tuid,flight_date);
 
-			System.out.println("-");
-
-			
 
 		}
 
@@ -41,6 +37,34 @@ public class Main {
 		return rs;
 	}
 
+	public static void  drawFlightGraphic(int flight_tuid,String flight_date)  throws
+			SQLException,ClassNotFoundException
+	{
+		Connection con = getConnection();
+		
+		String query = "SELECT * FROM SCHEDULE_TABLE WHERE flight_tuid = ? AND flight_date = ? ORDER BY seated_section DESC,seat_number";
+		PreparedStatement prep = con.prepareStatement(query);
+
+		
+		prep.setInt(1,flight_tuid);
+		prep.setString(2,flight_date);
+
+		System.out.println(prep.toString());
+
+		ResultSet rs = prep.executeQuery();
+
+
+		while(rs.next()) {
+			System.out.println("\t hello from the inner while");
+			String reqSec = rs.getString("requested_section");
+			String seatedSec = rs.getString("seated_section");
+			int seat_number = rs.getInt("seat_number");
+
+			System.out.println("\t" + reqSec + " " + seatedSec + " "+Integer.toString(seat_number));
+		}
+
+		con.close();
+	}
 	public static ResultSet getSeatings(int flight_tuid,String date) throws SQLException,ClassNotFoundException {
 		Connection con = getConnection();
 		PreparedStatement s = con.prepareStatement(
