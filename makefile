@@ -1,6 +1,13 @@
 default: build
 	echo '[*] program compiled sucessfully'
-	echo
+	echo 
+
+debug-GridRender: GridRender.class 
+	java GridRender
+
+GridRender.class: GridRender.java 
+	javac GridRender.java 
+
 
 #delete the db and rebuild
 remakeall: cleanall build 
