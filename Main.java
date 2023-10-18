@@ -92,7 +92,6 @@ public class Main {
 
 			System.out.println();
 			System.out.println("-".repeat(6));
-			System.out.println();
 		}
 
 		con.close();
@@ -116,8 +115,6 @@ public class Main {
 		int seat_number = rs.getInt("seat_number");
 
 
-		System.out.println("runing with a section size of " + Integer.toString(section_size));
-		System.out.println(section_size);
 
 		ArrayList<ArrayList<String>> vip_section = new ArrayList<>();
 
@@ -268,7 +265,6 @@ public class Main {
 	public static void storeSchedule(String[] data) 
 			throws ClassNotFoundException, SQLException {
 
-		System.out.println(data[2]);
 
 		storeSchedule(
 				Integer.parseInt(data[0]),
@@ -302,7 +298,6 @@ public class Main {
 		throws ClassNotFoundException, SQLException
 	{
 
-		System.out.println("storing schedule " + requested_date);
 		Connection con = getConnection();
 
 		PreparedStatement prep = con.prepareStatement(
@@ -312,9 +307,8 @@ public class Main {
 		prep.setInt(1,customer_tuid);
 		prep.setInt(2,requested_plane_tuid);
 		prep.setString(3,requested_date);
-		prep.setString(4,"V");
+		prep.setString(4,requested_seating);
 
-		System.out.println(prep.toString());
 		
 		prep.execute();
 
@@ -331,7 +325,6 @@ public class Main {
 		
 		while (scan.hasNextLine()) {
 			String line = scan.nextLine();
-			System.out.println(line);
 			String [] split_string = line.split(" ");
 			if (split_string[0].equals("P"))  //are we storing a passenger?
 			{
@@ -495,7 +488,6 @@ public class Main {
 					//I should be able to point java at a sql file and have it run with the
 					//driver, but whatever -_-
 
-					System.out.println(currentFile.getName());
 
 					if (currentFile.isDirectory()) {
 						runSqlFiles(currentFile,delimiter);
@@ -526,7 +518,6 @@ public class Main {
 						Connection con = getConnection();
 
 						Statement state = con.createStatement();
-						System.out.println(query);
 						state.execute(query); 
 						con.close();
 					}
