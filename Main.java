@@ -6,7 +6,22 @@ import java.io.IOException;
 import java.util.*;
 import java.sql.*;
 
+
 public class Main {
+
+	/**
+	 * rounds a given integer to the next highest integer multiple 
+	 *
+	 * so if we are using multiple 2
+	 *
+	 * 3 gets rounded to 4
+	 * 5 gets rounded to 6 
+	 * ect.
+	 *
+	 * */
+	public static int round_to_highest_multiple(int x, int multiple) {
+		return (x+1) - ((x+1) % multiple);
+	}
 
 	/**
 	 *returns a result set containing all flights with people in them stored in the database
@@ -26,8 +41,6 @@ public class Main {
 			String flight_date = rs.getString("flight_date");
 			int flight_value = rs.getInt("flight_value");
 
-			System.out.println("hello from the outer while");
-
 			drawFlightGraphic(flight_tuid,flight_date);
 
 
@@ -37,12 +50,100 @@ public class Main {
 		return rs;
 	}
 
+
+	/**
+	 * displays a table of the given result set for plane data and limits the output to passengers of a given section
+	 *
+	 * */
+	public static void printFlightSet(
+			ResultSet rs,String target_section,
+			String section_size_paramater,String render_title,
+			int plane_row_count
+			) throws SQLException {
+		
+
+		String requested_section = rs.getString("requested_section");
+		String seated_section = rs.getString("seated_section");
+		int seat_number = rs.getInt("seat_number");
+		int section_size = rs.getInt(section_size_paramater);
+
+
+		ArrayList<ArrayList<String>> vip_section = new ArrayList<>();
+
+
+		//rounds up to the nearest multiple of the plane_row_count
+		//so given plane_count = 2 if we see 3, we get rounded up to 4
+		//this is here so we loop over every square in the display
+		int nearest_multiple = round_to_highest_multiple(section_size,plane_row_count);
+
+		//this is used for formating the output
+		//and indicates the padding we want arount the value
+		//in the table
+		//
+		//TODO: this would make a lot of sense to live in the table library
+		String padding = "  ";
+
+
+
+		//now we do the luxury
+
+
+		//get the seats required for luxury
+		nearest_multiple = round_to_highest_multiple(section_size,plane_row_count);
+
+		boolean hasValidEntry = true;
+
+		for (int i = 1; i < nearest_multiple; i+=plane_row_count) {
+			ArrayList<String> row = new ArrayList();
+
+
+			//run for the row of the plane
+			for (int k = 0; k < plane_row_count;k++) {
+				String value = "E"; //e for empty
+
+				//if our seat number matches the loop, and we are VIP
+				//note java short circuting
+
+				System.out.println(seat_number);
+				//			System.out.println(
+				//					i+k == seat_number && seated_section.equals(target_section)
+				//					);	
+				if (i+k == seat_number && seated_section.equals(target_section) && hasValidEntry) {
+
+					hasValidEntry = rs.next();
+					value = requested_section; 
+
+					seated_section = rs.getString("seated_section");
+					seat_number = rs.getInt("seat_number");
+				}
+
+				//* indicates that seat simply does not exist on the given plane
+				if (i+k > section_size) {
+					value = "*";
+				}
+
+				row.add(padding+value+padding);
+			}
+
+			vip_section.add(row);
+
+		}
+
+		System.out.println(GridRender.renderGrid(vip_section,render_title));
+
+			//run for each row of vip
+
+	}
+	/**
+	 * takes in information about a single flight, and then displays that flight 
+	 * out to the terminal after retriving data from the database
+	 * */
 	public static void  drawFlightGraphic(int flight_tuid,String flight_date)  throws
 			SQLException,ClassNotFoundException
 	{
 		Connection con = getConnection();
 		
-		String query = "SELECT * FROM SCHEDULE_TABLE WHERE flight_tuid = ? AND flight_date = ? ORDER BY seated_section DESC,seat_number";
+		String query = "SELECT * FROM SCHEDULE_WITH_PLANE_DATA_VIEW WHERE flight_tuid = ? AND flight_date = ? ORDER BY seated_section DESC,seat_number";
 		PreparedStatement prep = con.prepareStatement(query);
 
 		
@@ -53,14 +154,10 @@ public class Main {
 
 		ResultSet rs = prep.executeQuery();
 
-
-		while(rs.next()) {
-			System.out.println("\t hello from the inner while");
-			String reqSec = rs.getString("requested_section");
-			String seatedSec = rs.getString("seated_section");
-			int seat_number = rs.getInt("seat_number");
-
-			System.out.println("\t" + reqSec + " " + seatedSec + " "+Integer.toString(seat_number));
+		if (rs.next())
+		{
+			printFlightSet(rs,"V","max_vip","vip",2);
+			printFlightSet(rs,"L","max_luxury","luxury",2);
 		}
 
 		con.close();
@@ -103,6 +200,7 @@ public class Main {
 			scan.nextLine();
 		}
 	}
+	
 	/**
 	 *takes in the string representation of a passenger and stores 
 	 it in the database
@@ -307,40 +405,14 @@ public class Main {
 	}
 
 
-	/**
-	 * pretty draws the given plane on the terminal
-	 * */
-	//public static void drawPlane(int vip_count_wanted, int luxury_count_wanted, int max_vip,int max_luxury,int plane_width) {
-
-
-	//	//set up the actual number of passengers at each step
-	//	int luxury_count = luxury_count_wanted;
-	//	int vip_count = luxury_count_wanted;
-	//	if (vip_count_wanted > max_vip) {
-	//		luxury_count += vip_count_wanted - max_vip;
-	//		vip_count = max_vip;
-	//	}
-
-	//	int plane_height = (int)Math.ceil((double)vip_count_wanted/(double)plane_width) + 
-	//							(int)Math.ceil((double) luxury_count_wanted / (double) plane_width);
-
-	//	for (int i = 0; i < plane_height; i++) {
-	//		for (int j = 0; j < plane_width; j++) {
-	//				
-	//		}
-	//		System.out.println();
-	//	}
-
-	//	//draw the vip section
-	//	//
-	//	
-	//}
 
 	public static void main(String [] args)  
 		throws ClassNotFoundException,SQLException, 
 							  FileNotFoundException,UnsupportedEncodingException,
 							  IOException
 	{
+
+
 
 		//createDatabase();
 		//loadPassengerFile("./project_files/plane.txt");

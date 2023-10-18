@@ -307,3 +307,11 @@ ON
 	SCHEDULE_TABLE.requested_section = FEE_TABLE.fee_type 
 GROUP BY 
 	flight_date,flight_tuid;
+
+CREATE VIEW SCHEDULE_WITH_PLANE_DATA_VIEW AS 
+SELECT * 
+	FROM 
+		SCHEDULE_TABLE 
+	INNER JOIN 
+		PLANE_TABLE 
+	ON PLANE_TABLE.tuid = SCHEDULE_TABLE.flight_tuid;
