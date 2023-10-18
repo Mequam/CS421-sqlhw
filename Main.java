@@ -23,6 +23,33 @@ public class Main {
 		return (x+1) - ((x+1) % multiple);
 	}
 
+
+	/**
+	 * left padds a string
+	 * */
+	public static String leftPad(String s, int length,char padder) {
+		int padding = length - s.length();
+		
+		for (int i = 0; i < padding;i++) {
+			s = padder + s;
+		}
+
+		return s;
+	}
+
+
+	/**
+	 * adds a tag to the left of a string, and displays that string to the right 
+	 * of the tag
+	 * 
+	 * basicaly convinence format function to format strings to pretty print in a menu
+	 * */
+	public static String tableTagString(String label,String entry, int length,char padder) {
+		int padding = length - label.length();
+		return label+leftPad(entry,padding,padder);
+	}
+
+
 	/**
 	 *returns a result set containing all flights with people in them stored in the database
 	 * */
@@ -39,11 +66,33 @@ public class Main {
 
 			int flight_tuid = rs.getInt("flight_tuid");
 			String flight_date = rs.getString("flight_date");
-			int flight_value = rs.getInt("flight_value");
+			double flight_value = rs.getDouble("flight_value");
+
+			int vip_count = rs.getInt("vip_count");
+			int luxury_count = rs.getInt("luxury_count");
+
+			int max_vip = rs.getInt("max_vip");
+			int max_luxury = rs.getInt("max_luxury");
 
 			drawFlightGraphic(flight_tuid,flight_date);
+			System.out.println("");
 
+			System.out.println(
+					tableTagString(Integer.toString(vip_count) + "/" + Integer.toString(max_vip) + " ","vip",40,'.')
+					);
+			System.out.println(
+					tableTagString(Integer.toString(luxury_count) + "/" + Integer.toString(max_luxury) + " ","luxury",40,'.')
+					);
+			System.out.println(
+					tableTagString(flight_date + ", " + Integer.toString(flight_tuid) + " ","flight date, plane_id",40,'.')
+					);
+			System.out.println(
+					tableTagString(Double.toString(flight_value) + " ","flight value",40,'.')
+					);
 
+			System.out.println();
+			System.out.println("-".repeat(6));
+			System.out.println();
 		}
 
 		con.close();
@@ -152,6 +201,7 @@ public class Main {
 		{
 			printFlightSet(rs,"V","max_vip","vip",2);
 			printFlightSet(rs,"L","max_luxury","luxury",2);
+
 		}
 
 		con.close();
@@ -214,6 +264,9 @@ public class Main {
 	}
 
 
+	/**
+	 *	inserts a single passenger into the database
+	 * */
 	public static void storePassanger(int tuid,
 			String first_initial,String middle_initial,
 			String lastname, String phone_number) 
