@@ -315,3 +315,16 @@ SELECT *
 	INNER JOIN 
 		PLANE_TABLE 
 	ON PLANE_TABLE.tuid = SCHEDULE_TABLE.flight_tuid;
+
+
+CREATE VIEW FLIGHT_MAX_CAPACITY_VIEW AS 
+	SELECT
+		max_vip,
+		max_luxury,
+		FLIGHT_TABLE.tuid as flight_tuid
+	FROM PLANE_TABLE 
+	INNER JOIN 
+	FLIGHT_TABLE 
+	ON FLIGHT_TABLE.plane_tuid = PLANE_TABLE.tuid;
+
+

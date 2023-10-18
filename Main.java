@@ -106,7 +106,7 @@ public class Main {
 	 * */
 	public static void printFlightSet(
 			ResultSet rs,String target_section,
-			String section_size_paramater,String render_title,
+			int section_size,String render_title,
 			int plane_row_count
 			) throws SQLException {
 		
@@ -114,8 +114,10 @@ public class Main {
 		String requested_section = rs.getString("requested_section");
 		String seated_section = rs.getString("seated_section");
 		int seat_number = rs.getInt("seat_number");
-		int section_size = rs.getInt(section_size_paramater);
 
+
+		System.out.println("runing with a section size of " + Integer.toString(section_size));
+		System.out.println(section_size);
 
 		ArrayList<ArrayList<String>> vip_section = new ArrayList<>();
 
@@ -186,6 +188,7 @@ public class Main {
 	public static void  drawFlightGraphic(int flight_tuid,String flight_date)  throws
 			SQLException,ClassNotFoundException
 	{
+
 		Connection con = getConnection();
 		
 		String query = "SELECT * FROM SCHEDULE_WITH_PLANE_DATA_VIEW WHERE flight_tuid = ? AND flight_date = ? ORDER BY seated_section DESC,seat_number";
@@ -197,11 +200,25 @@ public class Main {
 		
 		ResultSet rs = prep.executeQuery();
 
+
+		PreparedStatement ps = con.prepareStatement("SELECT max_vip,max_luxury FROM FLIGHT_MAX_CAPACITY_VIEW "+
+				"WHERE flight_tuid=?");
+		ps.setInt(1,flight_tuid);
+
+		ResultSet plane_data = ps.executeQuery();
+
+		int max_luxury;
+		int max_vip;
+		if (!plane_data.next()) return;
+
+		max_luxury = plane_data.getInt("max_luxury");
+		max_vip = plane_data.getInt("max_vip");
+
+
 		if (rs.next())
 		{
-			printFlightSet(rs,"V","max_vip","vip",2);
-			printFlightSet(rs,"L","max_luxury","luxury",2);
-
+			printFlightSet(rs,"V",max_vip,"vip",2);
+			printFlightSet(rs,"L",max_luxury,"luxury",2);
 		}
 
 		con.close();
