@@ -76,7 +76,11 @@ class GridRender<T> {
 			}
 			ret_val += seperator+line + "\n";
 		}
-		ret_val += seperator + "\n";
+		ret_val +=  seperator + "\n";
+
+		//could I center the title?, yes :)
+		//will I center the title?, no :p
+		ret_val = title + "\n" + ret_val; 
 
 
 		return ret_val;

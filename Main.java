@@ -104,10 +104,6 @@ public class Main {
 				//if our seat number matches the loop, and we are VIP
 				//note java short circuting
 
-				System.out.println(seat_number);
-				//			System.out.println(
-				//					i+k == seat_number && seated_section.equals(target_section)
-				//					);	
 				if (i+k == seat_number && seated_section.equals(target_section) && hasValidEntry) {
 
 					hasValidEntry = rs.next();
@@ -149,9 +145,7 @@ public class Main {
 		
 		prep.setInt(1,flight_tuid);
 		prep.setString(2,flight_date);
-
-		System.out.println(prep.toString());
-
+		
 		ResultSet rs = prep.executeQuery();
 
 		if (rs.next())
@@ -310,7 +304,6 @@ public class Main {
 					Connection con = getConnection();
 
 					Statement state = con.createStatement();
-					System.out.println(query);
 					state.execute(query); 
 					
 					con.close();
