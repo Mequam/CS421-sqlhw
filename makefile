@@ -16,7 +16,7 @@ remakeall: cleanall build
 # setup and run the program, then throw testing data into the database,
 # and plop down in the db for further tests by the uer
 debug: rerun 
-	sqlite3 *.db < ./project_files/test.sql
+	#sqlite3 *.db < ./project_files/test.sql
 	sqlite3 *.db
 	echo
 

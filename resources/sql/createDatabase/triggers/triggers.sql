@@ -101,6 +101,8 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 								WHERE tuid = new.flight_tuid
 							)
 						)
+						AND DATE(ALL_POSSIBLE_FLIGHTS.flight_date) 
+								>= DATE(new.flight_date)
 					ORDER BY flight_date, depart_time 
 					LIMIT 1)
 			
@@ -126,6 +128,8 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 								WHERE tuid = new.flight_tuid
 							)
 						)
+						AND DATE(ALL_POSSIBLE_FLIGHTS.flight_date) 
+								>= DATE(new.flight_date)
 					ORDER BY flight_date, depart_time 
 					LIMIT 1)
 		END,
@@ -173,6 +177,8 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 								WHERE tuid = new.flight_tuid
 							)
 						)
+						AND DATE(ALL_POSSIBLE_FLIGHTS.flight_date) 
+							>= DATE(new.flight_date)
 					ORDER BY flight_date, depart_time 
 					LIMIT 1)
 			-- we are a luxury passenger
@@ -197,6 +203,8 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 								WHERE tuid = new.flight_tuid
 							)
 						)
+					AND DATE(ALL_POSSIBLE_FLIGHTS.flight_date) 
+							>= DATE(new.flight_date)
 					ORDER BY flight_date, depart_time 
 					LIMIT 1)
 		END ,
@@ -224,7 +232,7 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 					(
 					SELECT COUNT(*)=0 AS new_data 
 						FROM ALL_POSSIBLE_FLIGHT_DATES 
-						WHERE flight_date = new.flight_date
+						WHERE DATE(flight_date) = DATE(new.flight_date)
 					) 
 			THEN 
 				new.requested_section
@@ -261,7 +269,10 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 								WHERE tuid = new.flight_tuid
 							)
 						)
-					ORDER BY flight_date, depart_time 
+
+						AND DATE(ALL_POSSIBLE_FLIGHTS.flight_date) 
+							>= DATE(new.flight_date)
+					ORDER BY DATE(flight_date), depart_time 
 					LIMIT 1
 				) = 1
 				THEN  -- if the vip count is full, we will get
@@ -277,7 +288,7 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 			--if we are not already in the system insert ourselfs into the system
 			WHEN (SELECT COUNT(*)=0 AS new_data 
 					FROM ALL_POSSIBLE_FLIGHT_DATES 
-					WHERE flight_date = new.flight_date)
+					WHERE DATE(flight_date) = DATE(new.flight_date))
 			THEN 
 				-- if it is a new passenger
 				-- then they obvi get the first seat number
@@ -331,7 +342,10 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 								WHERE tuid = new.flight_tuid
 							)
 						)
-					ORDER BY flight_date, depart_time 
+
+					AND DATE(ALL_POSSIBLE_FLIGHTS.flight_date) 
+						>= DATE(new.flight_date)
+					ORDER BY DATE(flight_date), depart_time 
 					LIMIT 1
 				) = 1
 				THEN  -- if the vip count is full, we will get
@@ -358,7 +372,10 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 								WHERE tuid = new.flight_tuid
 							)
 						)
-					ORDER BY flight_date, depart_time 
+
+					AND DATE(ALL_POSSIBLE_FLIGHTS.flight_date) 
+						>= DATE(new.flight_date)
+					ORDER BY DATE(flight_date), depart_time 
 					LIMIT 1
 				) 
 				THEN --there is space for the vip, insert normaly
@@ -389,7 +406,10 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 									WHERE tuid = new.flight_tuid
 								)
 							)
-						ORDER BY flight_date, depart_time 
+
+						AND DATE(ALL_POSSIBLE_FLIGHTS.flight_date) 
+							>= DATE(new.flight_date)
+						ORDER BY DATE(flight_date), depart_time 
 						LIMIT 1
 				)
 			ELSE --vip bump logic
@@ -419,6 +439,7 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 						AND
 						requested_section = 'L' 
 					
+						AND DATE(st.flight_date) >= DATE(new.flight_date)
 					ORDER BY 
 						
 						st.flight_date,
@@ -463,6 +484,9 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 											WHERE tuid = new.flight_tuid
 										)
 									)
+
+								AND 
+									DATE(flight_date) >= DATE(new.flight_date)
 								ORDER BY flight_date, depart_time 
 								LIMIT 1)
 
@@ -485,6 +509,8 @@ INSTEAD OF INSERT ON SCHEDULE_TABLE BEGIN
 								WHERE tuid = new.flight_tuid
 							)
 						)
+
+					AND DATE(flight_date) >= DATE(new.flight_date)
 					ORDER BY flight_date, depart_time 
 					LIMIT 1
 				)

@@ -220,6 +220,90 @@ public class Main {
 		return rs;
 	}
 
+
+	/**
+	 *
+	 *	takes in the requested tuid and returns the proper plane tuid as an integer 
+	 *	this is primarily here to handle the X in the requests
+	 * */
+	public static int getPlaneTuid(String requested_tuid) throws SQLException,ClassNotFoundException {
+		//if they want an X, we re-asign them to the flight with the earliest time,
+		//that is then used in the sql insert query to give them the appropriate time
+		if (requested_tuid.equals("X")) { 
+			Connection con = getConnection();
+			Statement s = con.createStatement();
+			ResultSet rs = s.executeQuery("SELECT tuid FROM FLIGHT_TABLE ORDER BY depart_time");
+			
+			int ret_val = rs.getInt("tuid");
+			
+			con.close();
+			
+			return ret_val;
+		} 
+		return Integer.parseInt(requested_tuid);
+
+	}
+
+	/**
+	 *	convinence function that stores a schedule into the database 
+	 *	from an array containing the appropriate infomration
+	 * */
+	public static void storeSchedule(String[] data) 
+			throws ClassNotFoundException, SQLException {
+
+		System.out.println(data[2]);
+
+		storeSchedule(
+				Integer.parseInt(data[0]),
+				getPlaneTuid(data[1]),
+				data[2],
+				databaseFormatDate(data[3])
+				);
+
+	}
+
+
+	/**
+	 * takes a string in the form of a date specified by an incoming file 
+	 * and converts it into a date string in the format that sql lite expects
+	 * */
+	public static String databaseFormatDate(String date) {
+		String [] split_date = date.split("/");
+		return split_date[2]+"-"+split_date[0]+"-"+split_date[1];
+	}
+
+
+	/**
+	 *	takes in paramaters formated from the .txt files and inputs them into the 
+	 *	sql database
+	 *
+	 * */
+	public static void storeSchedule(int customer_tuid,
+			int requested_plane_tuid,
+			String requested_seating,
+			String requested_date) 
+		throws ClassNotFoundException, SQLException
+	{
+
+		System.out.println("storing schedule " + requested_date);
+		Connection con = getConnection();
+
+		PreparedStatement prep = con.prepareStatement(
+				"INSERT INTO SCHEDULE_TABLE(passenger_tuid,flight_tuid,flight_date,requested_section) VALUES(?,?,?,?)"
+				);
+	
+		prep.setInt(1,customer_tuid);
+		prep.setInt(2,requested_plane_tuid);
+		prep.setString(3,requested_date);
+		prep.setString(4,"V");
+
+		System.out.println(prep.toString());
+		
+		prep.execute();
+
+		con.close();
+	
+	}
 	public static void loadPassengerFile(String fpath) 
 			throws 
 				FileNotFoundException,
@@ -230,6 +314,7 @@ public class Main {
 		
 		while (scan.hasNextLine()) {
 			String line = scan.nextLine();
+			System.out.println(line);
 			String [] split_string = line.split(" ");
 			if (split_string[0].equals("P"))  //are we storing a passenger?
 			{
@@ -240,8 +325,16 @@ public class Main {
 							1,
 							split_string.length)
 						);
+			} 
+			else if (split_string[0].equals("S")) 
+			{
+				storeSchedule((
+						Arrays.copyOfRange(
+							split_string,
+							1,
+							split_string.length)
+							));
 			}
-			scan.nextLine();
 		}
 	}
 	
@@ -461,7 +554,7 @@ public class Main {
 
 
 		//createDatabase();
-		//loadPassengerFile("./project_files/plane.txt");
+		loadPassengerFile("./project_files/plane.txt");
 
 		System.out.println("\n");
 
