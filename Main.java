@@ -320,7 +320,17 @@ public class Main {
 				FileNotFoundException,
 				ClassNotFoundException,
 				SQLException {
+
 		File file = new File(fpath);
+		loadPassengerFile(file);
+	}
+
+	public static void loadPassengerFile(File file) 
+			throws 
+				FileNotFoundException,
+				ClassNotFoundException,
+				SQLException {
+
 		Scanner scan = new Scanner(file);
 		
 		while (scan.hasNextLine()) {
@@ -394,7 +404,24 @@ public class Main {
 
 	}
 
+	
+	public static void clearDatabase() 
+			throws FileNotFoundException,ClassNotFoundException,
+								  SQLException,UnsupportedEncodingException,
+								  IOException
+	{
+		runSqlFiles("./resources/sql/clearDatabase",";");
+	}
 
+	/**
+	 *
+	 *	purges any and all reference of the database 
+	 *	by deleting it
+	 * */
+	public static void deleteDatabase() {
+		File f = new File("./schedule_database.db");
+		f.delete();
+	}
 	/**
 	 * creates the database, duh :p
 	 * */
@@ -406,7 +433,6 @@ public class Main {
 		//create the basic tables and population
 		runSqlFiles("./resources/sql/createDatabase/scafolding",";");
 		runSqlFileRaw("./resources/sql/createDatabase/triggers/triggers.sql");
-			
 	}
 
 
@@ -560,17 +586,67 @@ public class Main {
 	{
 
 
+		//this is me leaving my longing for c++
+		Scanner cin = new Scanner(System.in);
 
-		//createDatabase();
-		loadPassengerFile("./project_files/plane.txt");
-
-		System.out.println("\n");
-
-
-		System.out.println("displaying the result set");
+		System.out.print("would you like to clear the database? (y/n) ");
 
 
-		ResultSet rs = getAllPopulatedFlights();
+		String responce;
+		responce = cin.nextLine();
 
+
+		if (responce.equals("y")) {
+			deleteDatabase();
+			createDatabase();
+		}
+
+		while (!responce.equals("q")) {
+
+			ArrayList<ArrayList<String>> options = new ArrayList<>();
+			
+			ArrayList<String> addFile = new ArrayList<String>();
+			addFile.add("o to open and store a new database file");
+			options.add(addFile);
+
+			ArrayList<String> viewData = new ArrayList<String>();
+			viewData.add("v to view the data stored in the database");
+			options.add(viewData);
+
+			ArrayList<String> deleteData = new ArrayList<String>();
+			deleteData.add("d delete the data in the database");
+			options.add(deleteData);
+
+			ArrayList<String> quitData = new ArrayList<String>();
+			quitData.add("q to quit");
+			options.add(quitData);
+
+
+
+			System.out.println("\n"+GridRender.renderGrid(options,"options"));
+
+			responce = cin.nextLine();
+
+			switch (responce) {
+				case "o":
+					System.out.print("\nfile path:");
+					String fpath = cin.nextLine();
+
+					File f = new File(fpath);
+
+					loadPassengerFile(f);
+				break;
+				case "d":
+					System.out.println("\nclearing the database...");
+					deleteDatabase();
+					createDatabase();
+				break;
+				case "v":
+					System.out.println("\ndisplaying all flight data");
+					getAllPopulatedFlights();
+				break;
+			}
+
+		}
 	}
 }

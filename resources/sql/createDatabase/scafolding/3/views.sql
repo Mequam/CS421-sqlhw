@@ -1,6 +1,6 @@
 
 -- how many vip passengers does a given flight have?
-CREATE VIEW FLIGHT_VIP_COUNT AS 
+CREATE VIEW IF NOT EXISTS FLIGHT_VIP_COUNT AS 
 SELECT 
 	flight_tuid, 
 	flight_date, 
@@ -14,7 +14,7 @@ GROUP BY
 
 -- tells us how many passengers in each flight WANTED
 -- to get vip
-CREATE VIEW FLIGHT_VIP_COUNT_WANTED AS 
+CREATE VIEW IF NOT EXISTS FLIGHT_VIP_COUNT_WANTED AS 
 SELECT 
 	flight_tuid, 
 	flight_date, 
@@ -27,7 +27,7 @@ GROUP BY
 	flight_tuid,flight_date;
 
 -- how many luxary passengers does a flight have?
-CREATE VIEW FLIGHT_LUXURY_COUNT AS 
+CREATE VIEW IF NOT EXISTS FLIGHT_LUXURY_COUNT AS 
 SELECT 
 	flight_tuid,
 	flight_date,
@@ -40,7 +40,7 @@ GROUP BY
 	flight_tuid,flight_date;
 
 -- how many luxary passengers does a flight have?
-CREATE VIEW FLIGHT_LUXURY_COUNT_WANTED AS 
+CREATE VIEW IF NOT EXISTS FLIGHT_LUXURY_COUNT_WANTED AS 
 SELECT 
 	flight_tuid,
 	flight_date,
@@ -54,7 +54,7 @@ GROUP BY
 
 -- returns a list of passenger counts for flight
 -- scheduled on a given day
-CREATE VIEW FLIGHT_PASSENGER_COUNT AS 
+CREATE VIEW IF NOT EXISTS FLIGHT_PASSENGER_COUNT AS 
 SELECT 
 	CASE 
 		WHEN FLIGHT_VIP_COUNT.flight_tuid is NULL
@@ -131,7 +131,7 @@ SELECT
 -- any given flight, and the max passengers for that flight
 -- AND the time for the flight and total cost,
 -- generly a one stop spot for aggrigate data regaurding any given flight
-CREATE VIEW FLIGHT_SUMMARY_VIEW AS 
+CREATE VIEW IF NOT EXISTS FLIGHT_SUMMARY_VIEW AS 
 	SELECT 
 		FLIGHT_PASSENGER_COUNT.flight_tuid,
 		FLIGHT_PASSENGER_COUNT.flight_date,
@@ -160,24 +160,24 @@ CREATE VIEW FLIGHT_SUMMARY_VIEW AS
 
 --convinence view that gives us flight
 --information with timing information
-CREATE VIEW FLIGHT_TIMEING_VIEW AS 
+CREATE VIEW IF NOT EXISTS FLIGHT_TIMEING_VIEW AS 
 SELECT * 
 FROM SCHEDULE_TABLE_DATA 
 	INNER JOIN FLIGHT_TABLE 
 	ON SCHEDULE_TABLE_DATA.FLIGHT_TUID = FLIGHT_TABLE.tuid;
 
 
-CREATE VIEW SCHEDULE_TABLE 
+CREATE VIEW IF NOT EXISTS SCHEDULE_TABLE 
 AS SELECT * FROM SCHEDULE_TABLE_DATA;
 
-CREATE VIEW SCHEDULE_TABLE_WTIH_DATE AS 
+CREATE VIEW IF NOT EXISTS SCHEDULE_TABLE_WTIH_DATE AS 
 SELECT * 
 FROM SCHEDULE_TABLE 
 	INNER JOIN FLIGHT_TABLE 
 	ON FLIGHT_TABLE.TUID = SCHEDULE_TABLE.FLIGHT_TUID;
 
 -- human readable schedule table
-CREATE VIEW HR_SCHEDULE_TABLE AS 
+CREATE VIEW IF NOT EXISTS HR_SCHEDULE_TABLE AS 
 SELECT 
 	LASTNAME,
 	PLANE_ID, 
@@ -195,14 +195,14 @@ INNER JOIN PLANE_TABLE
 INNER JOIN PASSENGER_TABLE
 	ON PASSENGER_TABLE.tuid = SCHEDULE_TABLE.passenger_tuid;
 
-CREATE TABLE OUTPUT_TABLE(
+CREATE TABLE IF NOT EXISTS OUTPUT_TABLE(
 data VARCHAR
 );
 
 
 --generates a list of all possible date that we could possible have
 --a flight from the given table
-CREATE VIEW ALL_POSSIBLE_FLIGHT_DATES AS
+CREATE VIEW IF NOT EXISTS ALL_POSSIBLE_FLIGHT_DATES AS
 	WITH RECURSIVE countDates AS 
 	(
 		SELECT min(flight_date) AS flight_date FROM SCHEDULE_TABLE_DATA 
@@ -221,7 +221,7 @@ CREATE VIEW ALL_POSSIBLE_FLIGHT_DATES AS
 --creates a populated view of every possible flight
 --that could be flown in and the max and min lux/vip
 --that could be or are in that flight
-CREATE VIEW ALL_POSSIBLE_FLIGHTS AS 
+CREATE VIEW IF NOT EXISTS ALL_POSSIBLE_FLIGHTS AS 
 SELECT 
 	FLIGHT_TABLE.tuid as flight_tuid,
 	ALL_POSSIBLE_FLIGHT_DATES.flight_date,
@@ -275,7 +275,7 @@ FROM
 --passengers
 --this is used in the bumping step of our insert code
 --plus its a generally useful thing to have lying around
-CREATE VIEW SEATING_CONFLICTS AS 
+CREATE VIEW IF NOT EXISTS SEATING_CONFLICTS AS 
 
 SELECT 
 	st1.flight_date,
@@ -296,7 +296,7 @@ FROM
 	st1.seat_number = st2.seat_number AND 
 	st1.requested_section = 'V'; --ensure vip is from table 1
 
-CREATE VIEW FLIGHT_COSTS AS 
+CREATE VIEW IF NOT EXISTS FLIGHT_COSTS AS 
 	
 SELECT flight_date,flight_tuid,sum(cost) as flight_value
 FROM 
@@ -308,7 +308,7 @@ ON
 GROUP BY 
 	flight_date,flight_tuid;
 
-CREATE VIEW SCHEDULE_WITH_PLANE_DATA_VIEW AS 
+CREATE VIEW IF NOT EXISTS SCHEDULE_WITH_PLANE_DATA_VIEW AS 
 SELECT * 
 	FROM 
 		SCHEDULE_TABLE 
@@ -317,7 +317,7 @@ SELECT *
 	ON PLANE_TABLE.tuid = SCHEDULE_TABLE.flight_tuid;
 
 
-CREATE VIEW FLIGHT_MAX_CAPACITY_VIEW AS 
+CREATE VIEW IF NOT EXISTS FLIGHT_MAX_CAPACITY_VIEW AS 
 	SELECT
 		max_vip,
 		max_luxury,
